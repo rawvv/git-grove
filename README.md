@@ -37,8 +37,8 @@ EXAMPLE : ln -sf $(pwd)/.env.frontend ./hotfix-folder/frontend/.env
 ## worktree.sh 사용법
 
 ```
-chmod +x worktree.sh
-./worktree.sh
+chmod +x worktree-manager.sh
+./worktree-manager.sh
 ```
 
 - 폴더명 작성 시 brach와 동일하면 보기 편함 단, / <- 이걸 폴더명에 포함하면 경로가 꼬일 수 있음
