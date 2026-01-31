@@ -57,6 +57,7 @@ ICO_CHECK="✓"
 ICO_CROSS="✗"
 ICO_ARROW="→"
 ICO_WARN="⚠"
+ICO_REVIEW="🔍"
 
 # 스피너 애니메이션
 spinner() {
@@ -500,11 +501,27 @@ init_config() {
   local default_prefix="${REPLY:-feat/}"
   
   section "Symlink 설정"
-  msg_info "형식: 소스파일:대상경로 (예: .env:backend/.env)"
+  msg_info "env 파일이 들어갈 폴더를 지정하세요"
+  msg_info "예: backend, frontend, apps/web 등"
+  prompt "env 대상 폴더 ${DIM}(Enter: 루트)${NC}: "
+  local env_folder="${REPLY:-.}"
+
+  local symlinks_config=""
+  # 기본 .env symlink 자동 추가
+  if [ "$env_folder" = "." ]; then
+    symlinks_config+="  \".env:.env\"\n"
+    msg_ok ".env → .env 추가됨"
+  else
+    symlinks_config+="  \".env:${env_folder}/.env\"\n"
+    msg_ok ".env → ${env_folder}/.env 추가됨"
+  fi
+
+  echo ""
+  msg_info "추가 symlink가 필요하면 입력하세요"
+  msg_info "형식: 소스파일:대상경로 (예: .env.local:backend/.env.local)"
   msg_info "빈 줄 입력시 종료"
   echo ""
-  
-  local symlinks_config=""
+
   while true; do
     prompt "symlink 추가: "
     [ -z "$REPLY" ] && break
@@ -539,6 +556,95 @@ EOF
   source "$CONFIG_FILE"
 }
 
+# 6. PR 리뷰
+pr_review() {
+  # gh CLI 확인
+  if ! command -v gh &>/dev/null; then
+    msg_err "gh CLI가 설치되어 있지 않습니다"
+    msg_info "설치: brew install gh"
+    return
+  fi
+
+  check_bare_repo || return
+
+  box "${ICO_REVIEW} PR 리뷰"
+
+  section "PR 목록"
+  # PR 목록 조회
+  local pr_list=$(gh pr list --limit 20 --json number,title,headRefName,author \
+    --template '{{range .}}{{.number}}'$'\t''{{.title}}'$'\t''{{.headRefName}}'$'\t''{{.author.login}}{{"\n"}}{{end}}')
+
+  if [ -z "$pr_list" ]; then
+    msg_warn "열린 PR이 없습니다"
+    return
+  fi
+
+  # PR 목록 표시 (번호순)
+  local i=1
+  while IFS=$'\t' read -r num title branch author; do
+    printf "    ${DIM}%2d.${NC} ${C}#%s${NC} %s ${DIM}(%s)${NC}\n" "$i" "$num" "$title" "$author"
+    i=$((i+1))
+  done <<< "$pr_list"
+
+  echo ""
+  prompt "몇 번 PR로 가시겠습니까? ${DIM}(취소: Enter)${NC}: "
+  local selection="$REPLY"
+
+  [ -z "$selection" ] && { msg_warn "취소됨"; return; }
+
+  # 선택한 PR 정보 추출
+  local selected_line=$(echo "$pr_list" | sed -n "${selection}p")
+  local pr_number=$(echo "$selected_line" | cut -f1)
+  local pr_branch=$(echo "$selected_line" | cut -f3)
+
+  if [ -z "$pr_number" ]; then
+    msg_err "잘못된 선택입니다"
+    return
+  fi
+
+  # PR 상세 정보 표시
+  section "PR #$pr_number 상세"
+  gh pr view "$pr_number"
+
+  echo ""
+  prompt "이 PR로 워크트리를 생성하시겠습니까? ${DIM}(Y/n)${NC}: "
+
+  if [ "$REPLY" = "n" ] || [ "$REPLY" = "N" ]; then
+    msg_warn "취소됨"
+    return
+  fi
+
+  # 워크트리 생성
+  local folder="pr-$pr_number"
+
+  if [ -d "$ROOT_DIR/$folder" ]; then
+    msg_err "'$folder' 폴더가 이미 존재합니다"
+    return
+  fi
+
+  echo ""
+  git -C "$ROOT_DIR/$BARE_DIR" fetch origin "pull/$pr_number/head:pr-$pr_number" &>/dev/null &
+  spinner $! "PR 브랜치 fetch 중..."
+
+  git -C "$ROOT_DIR/$BARE_DIR" worktree add "../$folder" "pr-$pr_number" &>/dev/null &
+  spinner $! "워크트리 생성 중..."
+
+  if [ -d "$ROOT_DIR/$folder" ]; then
+    msg_ok "워크트리 생성 완료: ${BOLD}$folder${NC}"
+
+    # symlink 연결 제안
+    if [ ${#SYMLINKS[@]} -gt 0 ]; then
+      echo ""
+      prompt "설정된 파일들도 연결할까요? ${DIM}(Y/n)${NC}: "
+      if [ "$REPLY" != "n" ] && [ "$REPLY" != "N" ]; then
+        link_files "$folder"
+      fi
+    fi
+  else
+    msg_err "워크트리 생성 실패"
+  fi
+}
+
 # 메인 메뉴
 main_menu() {
   clear
@@ -567,6 +673,7 @@ main_menu() {
   echo -e "    ${BOLD}3${NC}  ${ICO_TRASH}  워크트리 삭제"
   echo -e "    ${BOLD}4${NC}  ${ICO_LIST}  목록 보기"
   echo -e "    ${BOLD}5${NC}  ${ICO_GEAR}  설정 초기화"
+  echo -e "    ${BOLD}6${NC}  ${ICO_REVIEW}  PR 리뷰"
   echo ""
   echo -e "    ${DIM}q${NC}  ${DIM}종료${NC}"
   echo ""
@@ -580,6 +687,7 @@ main_menu() {
     3) remove_worktree ;;
     4) show_list ;;
     5) init_config ;;
+    6) pr_review ;;
     q|Q) echo -e "\n  👋 ${DIM}Bye!${NC}\n"; exit 0 ;;
     *) msg_err "잘못된 선택" ;;
   esac
