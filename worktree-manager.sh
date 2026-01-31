@@ -567,9 +567,9 @@ pr_list_by_state() {
 
   section "${state_label} PR 목록"
 
-  # PR 목록 조회
-  local pr_list=$(gh pr list --state "$state" --limit 20 --json number,title,headRefName,author \
-    --template '{{range .}}{{.number}}'$'\t''{{.title}}'$'\t''{{.headRefName}}'$'\t''{{.author.login}}{{"\n"}}{{end}}')
+  # PR 목록 조회 (bare repo 디렉토리에서 실행)
+  local pr_list=$(cd "$ROOT_DIR/$BARE_DIR" && gh pr list --state "$state" --limit 20 --json number,title,headRefName,author \
+    --template '{{range .}}{{.number}}'$'\t''{{.title}}'$'\t''{{.headRefName}}'$'\t''{{.author.login}}{{"\n"}}{{end}}' 2>/dev/null)
 
   if [ -z "$pr_list" ]; then
     msg_warn "${state_label} PR이 없습니다"
@@ -601,7 +601,7 @@ pr_list_by_state() {
 
   # PR 상세 정보 표시
   section "PR #$pr_number 상세"
-  gh pr view "$pr_number"
+  (cd "$ROOT_DIR/$BARE_DIR" && gh pr view "$pr_number")
 
   echo ""
   prompt "이 PR로 워크트리를 생성하시겠습니까? ${DIM}(Y/n, z: 이전)${NC}: " || return
