@@ -6,7 +6,7 @@ const { main, runCommand } = require('../src/index');
 const packageJson = require('../package.json');
 
 program
-  .name('git-grove')
+  .name('grove')
   .description('Git bare repository 기반 워크트리 관리 CLI 도구')
   .version(packageJson.version);
 

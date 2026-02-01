@@ -9,7 +9,7 @@ const { colors, step, msg, blank } = require('../ui/output');
  */
 async function init() {
   console.log('');
-  console.log(`  ${colors.bold(colors.info('git-grove init'))}`);
+  console.log(`  ${colors.bold(colors.info('grove init'))}`);
   console.log(`  ${colors.dim('─────────────────────────────────')}`);
 
   // ========================================
@@ -102,7 +102,7 @@ async function init() {
   console.log(`  ${colors.success('✓')} ${colors.bold('모든 준비가 완료됐어요!')}`);
   console.log('');
   console.log(`  ${colors.dim('다음 단계:')}`);
-  console.log(`    ${colors.info('git-grove')} ${colors.dim('를 실행해 보세요.')}`);
+  console.log(`    ${colors.info('grove')} ${colors.dim('를 실행해 보세요.')}`);
   console.log('');
 }
 
