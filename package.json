@@ -1,10 +1,10 @@
 {
-  "name": "git-grove",
+  "name": "@rawvv/grove",
   "version": "0.1.0-beta.1",
   "description": "Git bare repository 기반 워크트리 관리 CLI 도구",
   "main": "src/index.js",
   "bin": {
-    "git-grove": "./bin/cli.js"
+    "grove": "./bin/cli.js"
   },
   "scripts": {
     "test": "echo \"No tests yet\""
@@ -23,11 +23,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ho8ae/git-grove.git"
+    "url": "https://github.com/rawvv/grove.git"
   },
-  "homepage": "https://github.com/ho8ae/git-grove#readme",
+  "homepage": "https://github.com/rawvv/grove#readme",
   "bugs": {
-    "url": "https://github.com/ho8ae/git-grove/issues"
+    "url": "https://github.com/rawvv/grove/issues"
   },
   "files": [
     "bin",

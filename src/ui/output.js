@@ -55,9 +55,9 @@ function section(title) {
 // 헤더 출력
 function header() {
   console.log('');
-  console.log(`  ${colors.bold(colors.info('╭───────────────────────────────────╮'))}`);
-  console.log(`  ${colors.bold(colors.info('│'))}  ${colors.bold(`${icons.tree} GIT GROVE`)}      ${colors.dim('v0.1.0-beta')}  ${colors.bold(colors.info('│'))}`);
-  console.log(`  ${colors.bold(colors.info('╰───────────────────────────────────╯'))}`);
+  console.log(`  ${colors.bold(colors.info('╭─────────────────────────────╮'))}`);
+  console.log(`  ${colors.bold(colors.info('│'))}  ${colors.bold(`${icons.tree} GROVE`)}      ${colors.dim('v0.1.0-beta')}  ${colors.bold(colors.info('│'))}`);
+  console.log(`  ${colors.bold(colors.info('╰─────────────────────────────╯'))}`);
 }
 
 // 구분선

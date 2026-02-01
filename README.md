@@ -1,4 +1,4 @@
-# git-grove 🌳
+# @rawvv/grove 🌳
 
 Git bare repository 기반 워크트리 관리 CLI 도구
 
@@ -6,7 +6,7 @@ Git bare repository 기반 워크트리 관리 CLI 도구
 
 ## 소개
 
-`git-grove`는 Git bare repository를 사용하여 여러 브랜치를 동시에 작업할 수 있게 해주는 CLI 도구입니다.
+`grove`는 Git bare repository를 사용하여 여러 브랜치를 동시에 작업할 수 있게 해주는 CLI 도구입니다.
 
 ### 왜 bare repository인가요?
 
@@ -25,8 +25,7 @@ bare repository + worktree 방식을 사용하면:
 ## 설치
 
 ```bash
-# beta 버전 설치
-npm install -g git-grove@beta
+npm install -g @rawvv/grove@beta
 ```
 
 ## 사용법
@@ -37,19 +36,19 @@ npm install -g git-grove@beta
 
 ```bash
 mkdir my-project && cd my-project
-git-grove init
+grove init
 ```
 
 ### 인터랙티브 모드
 
 ```bash
-git-grove
+grove
 ```
 
 ```
-  ╭───────────────────────────────────╮
-  │  🌳 GIT GROVE      v0.1.0-beta    │
-  ╰───────────────────────────────────╯
+  ╭─────────────────────────────╮
+  │  🌳 GROVE      v0.1.0-beta  │
+  ╰─────────────────────────────╯
 
   ● 설정: .worktree.config
     base: main │ prefix: feat/
@@ -69,12 +68,12 @@ git-grove
 ### 서브커맨드
 
 ```bash
-git-grove create      # 워크트리 생성
-git-grove remove      # 워크트리 삭제
-git-grove list        # 목록 보기
-git-grove link        # 파일 연결 (symlink)
-git-grove config      # 설정 초기화
-git-grove pr-review   # PR 리뷰
+grove create      # 워크트리 생성
+grove remove      # 워크트리 삭제
+grove list        # 목록 보기
+grove link        # 파일 연결 (symlink)
+grove config      # 설정 초기화
+grove pr-review   # PR 리뷰
 ```
 
 ## 주요 기능
@@ -126,5 +125,3 @@ SYMLINKS=(
 - GitHub CLI (`gh`) - PR 리뷰 기능 사용 시
 
 ## 라이선스
-
-MIT
