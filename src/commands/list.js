@@ -34,13 +34,13 @@ async function list() {
     }
   }
 
-  // Symlink 설정 표시
+  // 파일 복사 설정 표시
   const config = loadConfig(rootDir);
 
-  if (config.SYMLINKS && config.SYMLINKS.length > 0) {
-    section('Symlink 설정');
+  if (config.FILES && config.FILES.length > 0) {
+    section('파일 복사 설정');
 
-    for (const mapping of config.SYMLINKS) {
+    for (const mapping of config.FILES) {
       const [src, dest] = mapping.split(':');
       console.log(`    ${src} ${icons.arrow} ${dest}`);
     }

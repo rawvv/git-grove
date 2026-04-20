@@ -32,7 +32,9 @@ function loadConfig(rootDir = process.cwd()) {
     BARE_DIR: DEFAULTS.BARE_DIR,
     DEFAULT_BASE_BRANCH: DEFAULTS.BASE_BRANCH,
     DEFAULT_BRANCH_PREFIX: DEFAULTS.BRANCH_PREFIX,
-    SYMLINKS: []
+    FILES: [],
+    PRE_SWITCH_COMMANDS: [],
+    POST_CREATE_COMMANDS: []
   };
 
   if (!fs.existsSync(configPath)) {
@@ -54,12 +56,36 @@ function loadConfig(rootDir = process.cwd()) {
     const prefixMatch = content.match(/DEFAULT_BRANCH_PREFIX="([^"]+)"/);
     if (prefixMatch) config.DEFAULT_BRANCH_PREFIX = prefixMatch[1];
 
-    // SYMLINKS 파싱
+    // FILES 파싱
+    const filesMatch = content.match(/FILES=\(\s*([\s\S]*?)\s*\)/);
+    if (filesMatch) {
+      const filesContent = filesMatch[1];
+      const fileMatches = filesContent.matchAll(/"([^"]+)"/g);
+      config.FILES = Array.from(fileMatches, m => m[1]);
+    }
+
+    // SYMLINKS deprecated → FILES로 병합
     const symlinksMatch = content.match(/SYMLINKS=\(\s*([\s\S]*?)\s*\)/);
-    if (symlinksMatch) {
+    if (symlinksMatch && config.FILES.length === 0) {
       const symlinksContent = symlinksMatch[1];
       const linkMatches = symlinksContent.matchAll(/"([^"]+)"/g);
-      config.SYMLINKS = Array.from(linkMatches, m => m[1]);
+      config.FILES = Array.from(linkMatches, m => m[1]);
+    }
+
+    // PRE_SWITCH_COMMANDS 파싱
+    const preMatch = content.match(/PRE_SWITCH_COMMANDS=\(\s*([\s\S]*?)\s*\)/);
+    if (preMatch) {
+      const preContent = preMatch[1];
+      const preMatches = preContent.matchAll(/"([^"]+)"/g);
+      config.PRE_SWITCH_COMMANDS = Array.from(preMatches, m => m[1]);
+    }
+
+    // POST_CREATE_COMMANDS 파싱
+    const postMatch = content.match(/POST_CREATE_COMMANDS=\(\s*([\s\S]*?)\s*\)/);
+    if (postMatch) {
+      const postContent = postMatch[1];
+      const postMatches = postContent.matchAll(/"([^"]+)"/g);
+      config.POST_CREATE_COMMANDS = Array.from(postMatches, m => m[1]);
     }
 
     return config;
@@ -77,7 +103,15 @@ function loadConfig(rootDir = process.cwd()) {
 function saveConfig(config, rootDir = process.cwd()) {
   const configPath = getConfigPath(rootDir);
 
-  const symlinksStr = config.SYMLINKS
+  const filesStr = (config.FILES || [])
+    .map(s => `  "${s}"`)
+    .join('\n');
+
+  const preStr = (config.PRE_SWITCH_COMMANDS || [])
+    .map(s => `  "${s}"`)
+    .join('\n');
+
+  const postStr = (config.POST_CREATE_COMMANDS || [])
     .map(s => `  "${s}"`)
     .join('\n');
 
@@ -87,8 +121,16 @@ BARE_DIR="${config.BARE_DIR || DEFAULTS.BARE_DIR}"
 DEFAULT_BASE_BRANCH="${config.DEFAULT_BASE_BRANCH || DEFAULTS.BASE_BRANCH}"
 DEFAULT_BRANCH_PREFIX="${config.DEFAULT_BRANCH_PREFIX || DEFAULTS.BRANCH_PREFIX}"
 
-SYMLINKS=(
-${symlinksStr}
+FILES=(
+${filesStr}
+)
+
+PRE_SWITCH_COMMANDS=(
+${preStr}
+)
+
+POST_CREATE_COMMANDS=(
+${postStr}
 )
 `;
 
@@ -110,10 +152,39 @@ function getBareDir(rootDir = process.cwd()) {
   return path.join(rootDir, config.BARE_DIR);
 }
 
+/**
+ * 현재 active worktree 경로 반환
+ * @param {string} rootDir - 루트 디렉토리
+ * @returns {string|null}
+ */
+function getActivePath(rootDir = process.cwd()) {
+  const statePath = require('path').join(rootDir, DEFAULTS.BARE_DIR, 'grove-state');
+  if (!fs.existsSync(statePath)) return null;
+  try {
+    const content = fs.readFileSync(statePath, 'utf-8');
+    const match = content.match(/active_worktree=(.+)/);
+    return match ? match[1].trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * active worktree 경로 저장
+ * @param {string} rootDir - 루트 디렉토리
+ * @param {string} activePath - active worktree 절대 경로
+ */
+function setActivePath(rootDir = process.cwd(), activePath) {
+  const statePath = require('path').join(rootDir, DEFAULTS.BARE_DIR, 'grove-state');
+  fs.writeFileSync(statePath, `active_worktree=${activePath}\n`);
+}
+
 module.exports = {
   getConfigPath,
   configExists,
   loadConfig,
   saveConfig,
-  getBareDir
+  getBareDir,
+  getActivePath,
+  setActivePath
 };

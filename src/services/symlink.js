@@ -12,13 +12,13 @@ function parseSymlinkMapping(mapping) {
 }
 
 /**
- * 워크트리에 symlink 연결
+ * 워크트리에 파일 복사
  * @param {string} rootDir - 프로젝트 루트 경로
  * @param {string} worktreeName - 워크트리 폴더명
- * @param {string[]} symlinks - symlink 매핑 배열
+ * @param {string[]} symlinks - 파일 매핑 배열
  * @returns {Promise<Array<{mapping: string, success: boolean, error?: string}>>}
  */
-async function linkFilesToWorktree(rootDir, worktreeName, symlinks) {
+async function copyFilesToWorktree(rootDir, worktreeName, symlinks) {
   const worktreePath = path.join(rootDir, worktreeName);
   const results = [];
 
@@ -41,13 +41,8 @@ async function linkFilesToWorktree(rootDir, worktreeName, symlinks) {
       // 대상 디렉토리 생성
       await fs.ensureDir(path.dirname(destPath));
 
-      // 기존 파일/링크 제거
-      if (fs.existsSync(destPath)) {
-        await fs.remove(destPath);
-      }
-
-      // symlink 생성
-      await fs.symlink(sourcePath, destPath);
+      // 파일 복사
+      await fs.copy(sourcePath, destPath, { overwrite: true });
 
       results.push({
         mapping,
@@ -66,10 +61,10 @@ async function linkFilesToWorktree(rootDir, worktreeName, symlinks) {
 }
 
 /**
- * 워크트리의 symlink 상태 확인
+ * 워크트리의 파일 복사 상태 확인
  * @param {string} rootDir - 프로젝트 루트 경로
  * @param {string} worktreeName - 워크트리 폴더명
- * @param {string[]} symlinks - symlink 매핑 배열
+ * @param {string[]} symlinks - 파일 매핑 배열
  * @returns {Array<{mapping: string, linked: boolean, exists: boolean}>}
  */
 function checkSymlinkStatus(rootDir, worktreeName, symlinks) {
@@ -82,19 +77,7 @@ function checkSymlinkStatus(rootDir, worktreeName, symlinks) {
     const destPath = path.join(worktreePath, dest);
 
     const sourceExists = fs.existsSync(sourcePath);
-    let linked = false;
-
-    if (fs.existsSync(destPath)) {
-      try {
-        const stats = fs.lstatSync(destPath);
-        if (stats.isSymbolicLink()) {
-          const linkTarget = fs.readlinkSync(destPath);
-          linked = linkTarget === sourcePath || path.resolve(path.dirname(destPath), linkTarget) === sourcePath;
-        }
-      } catch {
-        linked = false;
-      }
-    }
+    const linked = fs.existsSync(destPath);
 
     results.push({
       mapping,
@@ -108,6 +91,7 @@ function checkSymlinkStatus(rootDir, worktreeName, symlinks) {
 
 module.exports = {
   parseSymlinkMapping,
-  linkFilesToWorktree,
+  copyFilesToWorktree,
+  linkFilesToWorktree: copyFilesToWorktree,
   checkSymlinkStatus
 };

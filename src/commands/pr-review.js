@@ -6,7 +6,7 @@ const { withSpinner } = require('../ui/spinner');
 const { fetchOrigin, isBareRepoExists } = require('../services/git');
 const { fetchPRBranch } = require('../services/branch');
 const { createWorktreeWithExistingBranch } = require('../services/worktree');
-const { linkFilesToWorktree } = require('../services/symlink');
+const { copyFilesToWorktree } = require('../services/symlink');
 const { loadConfig, getBareDir } = require('../utils/config-file');
 const { folderExists } = require('../utils/validators');
 const { prReviewSubMenu } = require('../ui/menu');
@@ -137,13 +137,13 @@ async function prListByState(state, stateLabel) {
 
   msg.ok(`워크트리 생성 완료: ${colors.bold(folder)}`);
 
-  // symlink 연결 제안
-  if (config.SYMLINKS && config.SYMLINKS.length > 0) {
+  // 파일 복사 제안
+  if (config.FILES && config.FILES.length > 0) {
     blank();
-    const linkFiles = await confirm('설정된 파일들도 연결할까요?', true);
+    const copyFiles = await confirm('설정된 파일들도 복사할까요?', true);
 
-    if (linkFiles) {
-      const results = await linkFilesToWorktree(rootDir, folder, config.SYMLINKS);
+    if (copyFiles) {
+      const results = await copyFilesToWorktree(rootDir, folder, config.FILES);
       blank();
       for (const r of results) {
         if (r.success) {
@@ -154,7 +154,7 @@ async function prListByState(state, stateLabel) {
           console.log(`    ${colors.error(icons.cross)} ${src} ${colors.dim(`(${r.error})`)}`);
         }
       }
-      msg.ok('연결 완료');
+      msg.ok('복사 완료');
     }
   }
 }

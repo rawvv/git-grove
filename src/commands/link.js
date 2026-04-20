@@ -2,7 +2,7 @@ const { box, section, msg, colors, icons, blank } = require('../ui/output');
 const { selectWorktree } = require('../ui/prompts');
 const { progressBar } = require('../ui/spinner');
 const { getWorktreesExcludeBare } = require('../services/worktree');
-const { linkFilesToWorktree } = require('../services/symlink');
+const { copyFilesToWorktree } = require('../services/symlink');
 const { isBareRepoExists } = require('../services/git');
 const { loadConfig, getBareDir } = require('../utils/config-file');
 
@@ -16,8 +16,8 @@ async function link(targetFolder = null) {
   const config = loadConfig(rootDir);
 
   // 설정 확인
-  if (!config.SYMLINKS || config.SYMLINKS.length === 0) {
-    msg.warn('설정된 symlink가 없습니다');
+  if (!config.FILES || config.FILES.length === 0) {
+    msg.warn('설정된 FILES가 없습니다');
     msg.info('.worktree.config 파일을 생성하세요');
     return;
   }
@@ -31,7 +31,7 @@ async function link(targetFolder = null) {
       return;
     }
 
-    box(`${icons.link} 파일 연결 (Symlink)`);
+    box(`${icons.link} 파일 복사`);
 
     // 워크트리 목록 조회
     const worktrees = await getWorktreesExcludeBare(bareDir);
@@ -51,16 +51,16 @@ async function link(targetFolder = null) {
     }
   }
 
-  section('Symlink 연결');
+  section('파일 복사');
 
-  // 프로그레스 표시하며 연결
-  const total = config.SYMLINKS.length;
+  // 프로그레스 표시하며 복사
+  const total = config.FILES.length;
   const results = [];
 
   for (let i = 0; i < total; i++) {
     process.stdout.write(`\r  ${progressBar(i + 1, total)}`);
 
-    const symlinkResults = await linkFilesToWorktree(rootDir, folder, [config.SYMLINKS[i]]);
+    const symlinkResults = await copyFilesToWorktree(rootDir, folder, [config.FILES[i]]);
     results.push(...symlinkResults);
 
     // 약간의 딜레이 (시각적 효과)
@@ -82,7 +82,7 @@ async function link(targetFolder = null) {
   }
 
   blank();
-  msg.ok('연결 완료');
+  msg.ok('복사 완료');
 }
 
 module.exports = { link };

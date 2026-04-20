@@ -1,13 +1,15 @@
 const path = require('path');
+const fs = require('fs');
+const execa = require('execa');
 const { box, section, msg, colors, icons, blank } = require('../ui/output');
 const { inputText, confirm, selectBranch } = require('../ui/prompts');
 const { withSpinner } = require('../ui/spinner');
 const { getWorktrees } = require('../services/worktree');
 const { getBranches } = require('../services/branch');
 const { createWorktreeWithNewBranch, createWorktreeWithExistingBranch } = require('../services/worktree');
-const { linkFilesToWorktree } = require('../services/symlink');
+const { copyFilesToWorktree } = require('../services/symlink');
 const { fetchOrigin, isBareRepoExists } = require('../services/git');
-const { loadConfig, getBareDir } = require('../utils/config-file');
+const { loadConfig, getBareDir, getActivePath, setActivePath } = require('../utils/config-file');
 const { validateFolderName } = require('../utils/validators');
 const { folderExists } = require('../utils/validators');
 
@@ -17,6 +19,7 @@ const { folderExists } = require('../utils/validators');
 async function create() {
   const rootDir = process.cwd();
   const bareDir = getBareDir(rootDir);
+  const config = loadConfig(rootDir);
 
   // bare repo 확인
   if (!isBareRepoExists(rootDir)) {
@@ -30,6 +33,34 @@ async function create() {
 
   // 원격 저장소 동기화
   await withSpinner('원격 저장소 동기화 중...', () => fetchOrigin(bareDir));
+
+  // PRE_SWITCH_COMMANDS 실행
+  if (config.PRE_SWITCH_COMMANDS && config.PRE_SWITCH_COMMANDS.length > 0) {
+    const activePath = getActivePath(rootDir);
+    if (activePath && fs.existsSync(activePath)) {
+      blank();
+      section('이전 환경 정리');
+      for (const cmd of config.PRE_SWITCH_COMMANDS) {
+        try {
+          msg.info(`실행 중: ${colors.dim(cmd)}`);
+          const parts = cmd.split(' ');
+          const bin = parts[0];
+          const args = parts.slice(1);
+          await execa(bin, args, { cwd: activePath, stdio: 'inherit' });
+          msg.ok('완료');
+        } catch (err) {
+          msg.warn(`명령 실패: ${cmd}`);
+          console.log(`    ${colors.dim(err.message || '')}`);
+          blank();
+          const proceed = await confirm('실패했지만 계속 진행할까요?', false);
+          if (!proceed) {
+            msg.warn('취소됨');
+            return;
+          }
+        }
+      }
+    }
+  }
 
   // 현재 워크트리 목록 표시
   section('현재 워크트리');
@@ -61,7 +92,6 @@ async function create() {
   // 브랜치 선택
   section('브랜치 선택');
   const branches = await getBranches(bareDir);
-  const config = loadConfig(rootDir);
 
   const branchSelection = await selectBranch(branches, config.DEFAULT_BASE_BRANCH);
 
@@ -151,13 +181,13 @@ async function create() {
 
   msg.ok(`워크트리 생성 완료: ${colors.bold(folder)} (${colors.info(finalBranch)})`);
 
-  // symlink 연결 제안
-  if (config.SYMLINKS && config.SYMLINKS.length > 0) {
+  // FILES 복사 제안
+  if (config.FILES && config.FILES.length > 0) {
     blank();
-    const linkFiles = await confirm('설정된 파일들도 연결할까요?', true);
+    const copyFiles = await confirm('설정된 파일들도 복사할까요?', true);
 
-    if (linkFiles) {
-      const results = await linkFilesToWorktree(rootDir, folder, config.SYMLINKS);
+    if (copyFiles) {
+      const results = await copyFilesToWorktree(rootDir, folder, config.FILES);
       blank();
       for (const r of results) {
         if (r.success) {
@@ -168,9 +198,36 @@ async function create() {
           console.log(`    ${colors.error(icons.cross)} ${src} ${colors.dim(`(${r.error})`)}`);
         }
       }
-      msg.ok('연결 완료');
+      msg.ok('복사 완료');
     }
   }
+
+  // POST_CREATE_COMMANDS 실행
+  if (config.POST_CREATE_COMMANDS && config.POST_CREATE_COMMANDS.length > 0) {
+    blank();
+    section('새 환경 시작');
+    const newWorktreePath = path.join(rootDir, folder);
+    for (const cmd of config.POST_CREATE_COMMANDS) {
+      try {
+        msg.info(`실행 중: ${colors.dim(cmd)}`);
+        const parts = cmd.split(' ');
+        const bin = parts[0];
+        const args = parts.slice(1);
+        await execa(bin, args, {
+          cwd: newWorktreePath,
+          stdio: 'inherit',
+          env: { ...process.env, COMPOSE_PROJECT_NAME: folder }
+        });
+        msg.ok('완료');
+      } catch (err) {
+        msg.err(`명령 실패: ${cmd}`);
+        console.log(`    ${colors.dim(err.message || '')}`);
+      }
+    }
+  }
+
+  // active worktree 업데이트
+  setActivePath(rootDir, path.join(rootDir, folder));
 }
 
 module.exports = { create };
