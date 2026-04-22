@@ -47,7 +47,7 @@ grove
 
 ```
   ╭─────────────────────────────╮
-  │  🌳 GROVE      v0.1.2-beta  │
+  │  🌳 GROVE      v0.2.1-beta  │
   ╰─────────────────────────────╯
 
   ● active  feat/my-feature [clean]
